@@ -6,22 +6,22 @@
 
 	Package bitset implements bitsets, a mapping
 	between non-negative integers and boolean values. It should be more
-	efficient than map[uint] bool.
+	efficient than map[uint32] bool.
 
 	It provides methods for setting, clearing, flipping, and testing
 	individual integers.
 
 	But it also provides set intersection, union, difference,
-	complement, and symmetric operations, as well as tests to 
-	check whether any, all, or no bits are set, and querying a 
+	complement, and symmetric operations, as well as tests to
+	check whether any, all, or no bits are set, and querying a
 	bitset's current length and number of postive bits.
 
 	BitSets are expanded to the size of the largest set bit; the
-	memory allocation is approximately Max bits, where Max is 
+	memory allocation is approximately Max bits, where Max is
 	the largest set bit. BitSets are never shrunk. On creation,
 	a hint can be given for the number of bits that will be used.
 
-    Many of the methods, including Set,Clear, and Flip, return 
+    Many of the methods, including Set,Clear, and Flip, return
 	a BitSet pointer, which allows for chaining.
 
 	Example use:
@@ -45,26 +45,27 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"encoding/binary"
 )
 
-// Word size of a bit set 
-const wordSize = uint(32)
+// Word size of a bit set
+const wordSize = uint32(32)
 
 // Mask for cleaning last word
 const allBits uint32 = 0xffffffff
 
 // for laster arith.
-const log2WordSize = uint(5)
+const log2WordSize = uint32(5)
 
-// BitSet internal details 
+// BitSet internal details
 type BitSet struct {
-	length uint
-	set    []uint32
+	length uint32
+	set[] uint32
 }
 
 type BitSetError string
 
-func wordsNeeded(i uint) uint {
+func wordsNeeded(i uint32) uint32 {
 	if i == math.MaxUint32 {
 		return math.MaxUint32 >> log2WordSize
 	} else if i == 0 {
@@ -73,32 +74,29 @@ func wordsNeeded(i uint) uint {
 	return (i + (wordSize - 1)) >> log2WordSize
 }
 
-func New(length ...uint) *BitSet {
-	if len(length) > 1 {
-		panic(BitSetError(fmt.Sprintf("invalid number of parameters: %v", len(length))))
-	}
-	var l uint
-	if len(length) > 0 {
-		l = length[0]
-	} else {
-		l = wordSize * 10
-	}
-	return &BitSet{l, make([]uint32, wordsNeeded(l))}
+
+func New(length uint32) *BitSet {
+	return &BitSet{length, make([]uint32, wordsNeeded(uint32(length)))}
 }
 
-func (b *BitSet) Cap() uint {
-	return uint(math.MaxUint32)
+func NewDefault() *BitSet {
+	length := wordSize * 10
+	return New(length)
 }
 
-func (b *BitSet) Len() uint {
+func (b *BitSet) Cap() uint32 {
+	return uint32(math.MaxUint32)
+}
+
+func (b *BitSet) Len() uint32 {
 	return b.length
 }
 
-// 
-func (b *BitSet) extendSetMaybe(i uint) {
+//
+func (b *BitSet) extendSetMaybe(i uint32) {
 	if i >= b.length { // if we need more bits, make 'em
 		nsize := wordsNeeded(i + 1)
-		if uint(len(b.set)) < nsize {
+		if uint32(len(b.set)) < nsize {
 			newset := make([]uint32, nsize)
 			copy(newset, b.set)
 			b.set = newset
@@ -107,8 +105,8 @@ func (b *BitSet) extendSetMaybe(i uint) {
 	}
 }
 
-/// Test whether bit i is set. 
-func (b *BitSet) Test(i uint) bool {
+/// Test whether bit i is set.
+func (b *BitSet) Test(i uint32) bool {
 	if i >= b.length {
 		return false
 	}
@@ -116,7 +114,7 @@ func (b *BitSet) Test(i uint) bool {
 }
 
 // Set bit i to 1
-func (b *BitSet) Set(i uint) *BitSet {
+func (b *BitSet) Set(i uint32) *BitSet {
 	b.extendSetMaybe(i)
 	//fmt.Printf("length in bits: %d, real size of sets: %d, bits: %d, index: %d\n", b.length, len(b.set), i, i>>log2WordSize)
 	b.set[i>>log2WordSize] |= (1 << (i & (wordSize - 1)))
@@ -124,7 +122,7 @@ func (b *BitSet) Set(i uint) *BitSet {
 }
 
 // Clear bit i to 0
-func (b *BitSet) Clear(i uint) *BitSet {
+func (b *BitSet) Clear(i uint32) *BitSet {
 	if i >= b.length {
 		return b
 	}
@@ -133,7 +131,7 @@ func (b *BitSet) Clear(i uint) *BitSet {
 }
 
 // Flip bit at i
-func (b *BitSet) Flip(i uint) *BitSet {
+func (b *BitSet) Flip(i uint32) *BitSet {
 	if i >= b.length {
 		return b.Set(i)
 	}
@@ -152,7 +150,7 @@ func (b *BitSet) ClearAll() *BitSet {
 }
 
 // Query words used in a bit set
-func (b *BitSet) wordCount() uint {
+func (b *BitSet) wordCount() uint32 {
 	return wordsNeeded(b.length)
 }
 
@@ -166,7 +164,7 @@ func (b *BitSet) Clone() *BitSet {
 // Copy this BitSet into a destination BitSet
 // Returning the size of the destination BitSet
 // like array copy
-func (b *BitSet) Copy(c *BitSet) (count uint) {
+func (b *BitSet) Copy(c *BitSet) (count uint32) {
 	if c == nil {
 		return
 	}
@@ -178,17 +176,17 @@ func (b *BitSet) Copy(c *BitSet) (count uint) {
 	return
 }
 
-// From Wikipedia: http://en.wikipedia.org/wiki/Hamming_weight                                     
+// From Wikipedia: http://en.wikipedia.org/wiki/Hamming_weight
 const m1 uint32 = 0x55555555 //binary: 0101...
 const m2 uint32 = 0x33333333 //binary: 00110011..
 const m4 uint32 = 0x0f0f0f0f //binary:  4 zeros,  4 ones ...
 
-// From Wikipedia: count number of set bits. 
+// From Wikipedia: count number of set bits.
 // This is algorithm popcount_2 in the article retrieved May 9, 2011
 func popCountUint32(x uint32) uint32 {
 	x -= (x >> 1) & m1             //put count of each 2 bits into those 2 bits
-	x = (x & m2) + ((x >> 2) & m2) //put count of each 4 bits into those 4 bits 
-	x = (x + (x >> 4)) & m4        //put count of each 8 bits into those 8 bits 
+	x = (x & m2) + ((x >> 2) & m2) //put count of each 4 bits into those 4 bits
+	x = (x + (x >> 4)) & m4        //put count of each 8 bits into those 8 bits
 	x += x >> 8                    //put count of each 16 bits into their lowest 8 bits
 	x += x >> 16                   //put count of each 32 bits into their lowest 8 bits
 	//x += x >> 32;  //put count of each 64 bits into their lowest 8 bits
@@ -196,18 +194,18 @@ func popCountUint32(x uint32) uint32 {
 }
 
 // Count (number of set bits)
-func (b *BitSet) Count() uint {
+func (b *BitSet) Count() uint32 {
 	if b != nil {
 		cnt := uint32(0)
 		for _, word := range b.set {
 			cnt += popCountUint32(word)
 		}
-		return uint(cnt)
+		return uint32(cnt)
 	}
 	return 0
 }
 
-// Test the equvalence of two BitSets. 
+// Test the equvalence of two BitSets.
 // False if they are of different sizes, otherwise true
 // only if all the same bits are set
 func (b *BitSet) Equal(c *BitSet) bool {
@@ -239,7 +237,7 @@ func (b *BitSet) Difference(compare *BitSet) (result *BitSet) {
 	result = b.Clone() // clone b (in case b is bigger than compare)
 	szl := compare.wordCount()
 	for i, word := range b.set {
-		if uint(i) >= szl {
+		if uint32(i) >= szl {
 			break
 		}
 		result.set[i] = word &^ compare.set[i]
@@ -247,7 +245,7 @@ func (b *BitSet) Difference(compare *BitSet) (result *BitSet) {
 	return
 }
 
-// Convenience function: return two bitsets ordered by 
+// Convenience function: return two bitsets ordered by
 // increasing length. Note: neither can be nil
 func sortByLength(a *BitSet, b *BitSet) (ap *BitSet, bp *BitSet) {
 	if a.length <= b.length {
@@ -280,7 +278,7 @@ func (b *BitSet) Union(compare *BitSet) (result *BitSet) {
 	result = compare.Clone()
 	szl := compare.wordCount()
 	for i, word := range b.set {
-		if uint(i) >= szl {
+		if uint32(i) >= szl {
 			break
 		}
 		result.set[i] = word | compare.set[i]
@@ -298,7 +296,7 @@ func (b *BitSet) SymmetricDifference(compare *BitSet) (result *BitSet) {
 	result = compare.Clone()
 	szl := b.wordCount()
 	for i, word := range b.set {
-		if uint(i) >= szl {
+		if uint32(i) >= szl {
 			break
 		}
 		result.set[i] = word ^ compare.set[i]
@@ -321,7 +319,7 @@ func (b *BitSet) cleanLastWord() {
 // Return the (local) Complement of a biset (up to length bits)
 func (b *BitSet) Complement() (result *BitSet) {
 	panicIfNull(b)
-	b.DumpAsBits()
+	b.String()
 	result = New(b.length)
 	for i, word := range b.set {
 		result.set[i] = ^(word)
@@ -356,12 +354,42 @@ func (b *BitSet) Any() bool {
 	return !b.None()
 }
 
-// Dump as bits
-func (b *BitSet) DumpAsBits() string {
+//returns string representation
+func (b *BitSet) String() string {
 	buffer := bytes.NewBufferString("")
 	i := int(wordsNeeded(b.length) - 1)
 	for ; i >= 0; i-- {
 		fmt.Fprintf(buffer, "%032b.", b.set[i])
 	}
 	return string(buffer.Bytes())
+}
+
+//Dumps b in compact & restorable format
+func Dump(b *BitSet) (dump []byte) {
+
+	size := len(b.set)*binary.MaxVarintLen32 + binary.Size(b.length) + binary.Size(len(b.set))
+	dump = make([]byte, size)
+	pos := binary.PutUvarint(dump, uint64(b.length))//sum number of bytes to adjust dump size
+	for _, v := range b.set {
+		pos += binary.PutUvarint(dump[pos:], uint64(v))
+	}
+	return dump[0:pos]
+}
+//Restores BitSet value from it's dump
+func Restore(dump []byte) *BitSet {
+	length, n := binary.Uvarint(dump)
+	pos := n
+	b := New(uint32(length))
+	var s uint64
+	var i = 0
+	for {
+		s, n = binary.Uvarint(dump[pos:])
+		pos += n
+		if n <= 0 {//nothing found or error
+			break
+		}
+		b.set[i] = uint32(s)
+		i++
+	}
+	return b
 }
