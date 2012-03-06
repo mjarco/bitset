@@ -33,7 +33,7 @@ func TestBitSetNew(t *testing.T) {
 }
 
 func TestBitSetHuge(t *testing.T) {
-	v := New(uint32(math.MaxUint32))
+	v := New(uint(math.MaxUint32))
 	if v.Test(0) != false {
 		t.Errorf("Unable to make a huge bit set and read its 0th value.")
 	}
@@ -41,8 +41,8 @@ func TestBitSetHuge(t *testing.T) {
 
 func TestCap(t *testing.T) {
 	v := New(1000)
-	if v.Cap() != uint32(math.MaxUint32) {
-		t.Errorf("Cap should be MaxUint32, but is %d.", v.Cap())
+	if v.Cap() != uint(math.MaxUint32) {
+		t.Errorf("Cap should be Maxuint, but is %d.", v.Cap())
 	}
 }
 
@@ -55,8 +55,8 @@ func TestLen(t *testing.T) {
 
 func TestBitSetIsClear(t *testing.T) {
 	v := New(1000)
-	for i := uint32(0); i < 1000; i++ {
-		if v.Test(uint32(i)) != false {
+	for i := uint(0); i < 1000; i++ {
+		if v.Test(uint(i)) != false {
 			t.Errorf("Bit %d is set, and it shouldn't be.", i)
 		}
 	}
@@ -79,7 +79,7 @@ func TestExpand(t *testing.T) {
 			t.Error("Expansion should not have caused a panic")
 		}
 	}()
-	for i := uint32(0); i < 1000; i++ {
+	for i := uint(0); i < 1000; i++ {
 		v.Set(i)
 	}
 }
@@ -119,10 +119,10 @@ func TestOutOfBoundsClose(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-	tot := uint32(64*4 + 11) // just some multi unit64 number
+	tot := uint(64*4 + 11) // just some multi unit64 number
 	v := New(tot)
 	checkLast := true
-	for i := uint32(0); i < tot; i++ {
+	for i := uint(0); i < tot; i++ {
 		sz := v.Count()
 		if sz != i {
 			t.Errorf("Count reported as %d, but it should be %d", sz, i)
@@ -141,9 +141,9 @@ func TestCount(t *testing.T) {
 
 // test setting every 3rd bit, just in case something odd is happening
 func TestCount2(t *testing.T) {
-	tot := uint32(64*4 + 11) // just some multi unit64 number
+	tot := uint(64*4 + 11) // just some multi unit64 number
 	v := New(tot)
-	for i := uint32(0); i < tot; i += 3 {
+	for i := uint(0); i < tot; i += 3 {
 		sz := v.Count()
 		if sz != i/3 {
 			t.Errorf("Count reported as %d, but it should be %d", sz, i)
@@ -351,11 +351,11 @@ func TestEqual(t *testing.T) {
 func TestUnion(t *testing.T) {
 	a := New(100)
 	b := New(200)
-	for i := uint32(1); i < 100; i += 2 {
+	for i := uint(1); i < 100; i += 2 {
 		a.Set(i)
 		b.Set(i - 1)
 	}
-	for i := uint32(100); i < 200; i++ {
+	for i := uint(100); i < 200; i++ {
 		b.Set(i)
 	}
 	c := a.Union(b)
@@ -371,11 +371,11 @@ func TestUnion(t *testing.T) {
 func TestIntersection(t *testing.T) {
 	a := New(100)
 	b := New(200)
-	for i := uint32(1); i < 100; i += 2 {
+	for i := uint(1); i < 100; i += 2 {
 		a.Set(i)
 		b.Set(i - 1).Set(i)
 	}
-	for i := uint32(100); i < 200; i++ {
+	for i := uint(100); i < 200; i++ {
 		b.Set(i)
 	}
 	c := a.Intersection(b)
@@ -391,11 +391,11 @@ func TestIntersection(t *testing.T) {
 func TestDifference(t *testing.T) {
 	a := New(100)
 	b := New(200)
-	for i := uint32(1); i < 100; i += 2 {
+	for i := uint(1); i < 100; i += 2 {
 		a.Set(i)
 		b.Set(i - 1)
 	}
-	for i := uint32(100); i < 200; i++ {
+	for i := uint(100); i < 200; i++ {
 		b.Set(i)
 	}
 	c := a.Difference(b)
@@ -414,11 +414,11 @@ func TestDifference(t *testing.T) {
 func TestSymmetricDifference(t *testing.T) {
 	a := New(100)
 	b := New(200)
-	for i := uint32(1); i < 100; i += 2 {
+	for i := uint(1); i < 100; i += 2 {
 		a.Set(i)            // 01010101010 ... 0000000
 		b.Set(i - 1).Set(i) // 11111111111111111000000
 	}
-	for i := uint32(100); i < 200; i++ {
+	for i := uint(100); i < 200; i++ {
 		b.Set(i)
 	}
 	c := a.SymmetricDifference(b)
@@ -456,7 +456,7 @@ func TestString(t *testing.T){
 
 func TestDumpRestore(t *testing.T) {
 	a := New(2500000)
-	values := []uint32{0, 127, 128, 255, 267, 65000, 66000, 2000000}
+	values := []uint{0, 127, 128, 255, 267, 65000, 66000, 2000000}
 	for _, v := range values {
 		a.Set(v)
 	}
@@ -475,10 +475,10 @@ func BenchmarkSet(b *testing.B) {
 	b.StopTimer()
 	r := rand.New(rand.NewSource(0))
 	sz := 100000
-	s := New(uint32(sz))
+	s := New(uint(sz))
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		s.Set(uint32(r.Int31n(int32(sz))))
+		s.Set(uint(r.Int31n(int32(sz))))
 	}
 }
 
@@ -486,16 +486,16 @@ func BenchmarkGetTest(b *testing.B) {
 	b.StopTimer()
 	r := rand.New(rand.NewSource(0))
 	sz := 100000
-	s := New(uint32(sz))
+	s := New(uint(sz))
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		s.Test(uint32(r.Int31n(int32(sz))))
+		s.Test(uint(r.Int31n(int32(sz))))
 	}
 }
 
 func BenchmarkSetExpand(b *testing.B) {
 	b.StopTimer()
-	sz := uint32(100000)
+	sz := uint(100000)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		s := NewDefault()
