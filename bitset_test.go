@@ -11,6 +11,7 @@ import (
 	"math"
 	"math/rand"
 	"testing"
+	"io"
 )
 
 func TestEmptyBitSet(t *testing.T) {
@@ -454,17 +455,37 @@ func TestString(t *testing.T){
 	fmt.Println(a.String())
 }
 
-func TestDumpRestore(t *testing.T) {
+type rw struct{
+	buf []byte
+	r int
+}
+
+func (r *rw) Write(b []byte) (int, error) {
+	r.buf = append(r.buf, b...)
+
+	return len(b), nil
+}
+
+func (r *rw) Read(b []byte) (int, error) {
+	n := copy(b, r.buf[r.r:])
+	r.r += n
+	if n < len(b) {//eof
+		return n, io.EOF
+	}
+	return n, nil
+}
+func TestEncodeDecode(t *testing.T) {
 	a := New(2500000)
-	values := []uint{0, 127, 128, 255, 267, 65000, 66000, 2000000}
+	values := []uint{0, 5, 10, 15, 127, 128, 255, 267, 65000, 66000, 2000000}
 	for _, v := range values {
 		a.Set(v)
 	}
-	dump := Dump(a)
-	b := Restore(dump)
+	wr := &rw{make([]byte, 0, 10), 0}
+	Encode(wr, a)
+	b := Decode(wr)
 	for _, v := range values {
 		if !b.Test(v) {
-			t.Error("Dump/Restore failure, value %v should be in bitset")
+			t.Errorf("Dump/Restore failure, value %v should be in bitset", v)
 		}
 	}
 }
@@ -502,6 +523,5 @@ func BenchmarkSetExpand(b *testing.B) {
 		s.Set(sz)
 	}
 }
-
 
 
