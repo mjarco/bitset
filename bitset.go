@@ -43,10 +43,10 @@ package bitset
 
 import (
 	"bytes"
-	"fmt"
-	"math"
 	"encoding/binary"
+	"fmt"
 	"io"
+	"math"
 )
 
 // Word size of a bit set
@@ -61,7 +61,7 @@ const log2WordSize = uint(5)
 // BitSet internal details
 type BitSet struct {
 	length uint
-	set[] uint32
+	set    []uint32
 }
 
 type BitSetError string
@@ -74,7 +74,6 @@ func wordsNeeded(i uint) uint {
 	}
 	return (i + (wordSize - 1)) >> log2WordSize
 }
-
 
 func New(length uint) *BitSet {
 	return &BitSet{length, make([]uint32, wordsNeeded(uint(length)))}
@@ -366,7 +365,7 @@ func (b *BitSet) String() string {
 }
 
 //Dumps b in compact & restorable format
-func Encode(w io.Writer, b *BitSet) {//TODO: there should be an error handling
+func Encode(w io.Writer, b *BitSet) { //TODO: there should be an error handling
 
 	dump := make([]byte, binary.MaxVarintLen64)
 	pos := binary.PutUvarint(dump, uint64(b.length))
@@ -378,55 +377,34 @@ func Encode(w io.Writer, b *BitSet) {//TODO: there should be an error handling
 	}
 }
 
-
-func oneuint(r io.Reader) uintiter {
-	buf := make([]byte, binary.MaxVarintLen64)
-	var err error
-	var nuvarint, nreadfull, shift int = 1, 0, 0
-	var myuint uint64
-	return func () (uint64, error) {
-		//Fill the buffer (if possible)
-		if err == nil {
-			nreadfull, err = r.Read(buf[shift:])
-		}
-		//EOF error? trim buffer
+func one(r io.Reader) (uint64, error) {
+	buint := make([]byte, binary.MaxVarintLen64)
+	ic, n := 0, 0
+	var decoded uint64 = 0
+	for n <= 0 {
+		_, err := r.Read(buint[ic : ic+1])
 		if err != nil {
-			buf = buf[0:shift+nreadfull]
-			nreadfull = 0
-		}
-		if nuvarint <= 0 {//bad last unvarint reading, exit with error
 			return 0, err
 		}
-		//let's get any number from beggining of the bufer
-		myuint, nuvarint = binary.Uvarint(buf)
-		if nuvarint > 0 {//unvarint successful!
-			//we need to copy rest of buf to the beggining
-			shift = copy(buf, buf[nuvarint:])//remember copy length to prevent overwriting buffer on read
-			if nuvarint <= 0 {
-				return 0, err
-			}
-			return myuint, nil
-		}
-		//never reached
-		return 0, err
+		ic++
+		decoded, n = binary.Uvarint(buint[:ic])
 	}
+	return decoded, nil
 }
-
 
 //Restores BitSet value from it's dump
 func Decode(r io.Reader) *BitSet {
-	one := oneuint(r)
-	l, err := one()
+	l, err := one(r)
 	b := New(uint(l))
 	var s uint64
 	var i = 0
-	for s, err = one(); err == nil; s, err = one() {
+	for s, err = one(r); err == nil; s, err = one(r) {
 		if i < len(b.set) {
 			b.set[i] = uint32(s)
 		}
-		i ++
+		i++
 	}
 	return b
 }
 
-type uintiter func () (uint64, error)
+type uintiter func() (uint64, error)

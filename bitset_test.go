@@ -8,10 +8,10 @@ package bitset
 
 import (
 	"fmt"
+	"io"
 	"math"
 	"math/rand"
 	"testing"
-	"io"
 )
 
 func TestEmptyBitSet(t *testing.T) {
@@ -449,15 +449,15 @@ func TestComplement(t *testing.T) {
 	}
 }
 
-func TestString(t *testing.T){
+func TestString(t *testing.T) {
 	a := New(1)
 	a.Set(0)
 	fmt.Println(a.String())
 }
 
-type rw struct{
+type rw struct {
 	buf []byte
-	r int
+	r   int
 }
 
 func (r *rw) Write(b []byte) (int, error) {
@@ -469,7 +469,7 @@ func (r *rw) Write(b []byte) (int, error) {
 func (r *rw) Read(b []byte) (int, error) {
 	n := copy(b, r.buf[r.r:])
 	r.r += n
-	if n < len(b) {//eof
+	if n < len(b) { //eof
 		return n, io.EOF
 	}
 	return n, nil
@@ -523,5 +523,3 @@ func BenchmarkSetExpand(b *testing.B) {
 		s.Set(sz)
 	}
 }
-
-
